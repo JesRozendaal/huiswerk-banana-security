@@ -1,4 +1,4 @@
-import React, {createContext, useState} from "react";
+import React, {createContext, useEffect, useState} from "react";
 import {useHistory} from "react-router-dom";
 import jwt_decode from "jwt-decode";
 import axios from "axios";
@@ -6,10 +6,52 @@ import axios from "axios";
 export const AuthContext = createContext({});
 
 function AuthContextProvider ({children}) {
-    const [isAuth, toggleIsAuth] = useState({
+    const [isAuth, setIsAuth] = useState({
         isAuth: false,
         user: null,
+        status: 'pending',
     });
+
+// stap 19
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+
+        if(token) {
+            const decodedToken = jwt_decode(token);
+            console.log(decodedToken);
+
+            async function fetchUserData() {
+                try {
+                    const response = await axios.get(`http://localhost:3000/600/users/${decodedToken.sub}`, {
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        }
+                    });
+                    setIsAuth({
+                        ...isAuth,
+                        isAuth:true,
+                        user:{
+                            email: response.data.email,
+                            username: response.data.username,
+                            id: response.data.id,
+                        },
+                        status:'done',
+                    })
+                    console.log(response);
+                }catch (e) {
+                    console.error(e);
+                    setIsAuth({
+                        ...isAuth,
+                        status:'done',
+                        }
+                    )
+                }
+            }
+            fetchUserData();
+        }
+    }, []);
+
     const history = useHistory();
 
     const data = {
@@ -31,7 +73,7 @@ function AuthContextProvider ({children}) {
                         Authorization: `Bearer ${token}`,
                     }});
             // stap 14: zet de gebruikersgegevens in de context-state en toggle isAuth op true.
-            toggleIsAuth({
+            setIsAuth({
                 ...isAuth,
                 isAuth: true,
                 user: {
@@ -60,11 +102,11 @@ function AuthContextProvider ({children}) {
         getUserData(decoded.sub, jwt);
         console.log('Gebruiker is ingelogd!');
         // sla de jwt op in de local storage.
-        localStorage.setItem("token", jwt);
+        localStorage.setItem('token', jwt);
     }
 
     function signOut() {
-        toggleIsAuth({
+        setIsAuth({
             ...isAuth,
             isAuth: false,
             user: null,
@@ -76,7 +118,7 @@ function AuthContextProvider ({children}) {
 
     return(
         <AuthContext.Provider value={data}>
-            {children}
+            {isAuth.status === 'done' ?  children : <p>Loading...</p>}
         </AuthContext.Provider>
     )
 }
