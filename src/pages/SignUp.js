@@ -1,7 +1,6 @@
 import React, {useState} from 'react';
 import {Link, useHistory} from 'react-router-dom';
 import axios from "axios";
-import {AuthContext} from "../context/AuthContext";
 
 function SignUp() {
     const [email, setEmail] = useState('');

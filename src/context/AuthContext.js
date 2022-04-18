@@ -6,7 +6,7 @@ import axios from "axios";
 export const AuthContext = createContext({});
 
 function AuthContextProvider ({children}) {
-    const [isAuth, setIsAuth] = useState({
+    const [isAuth, toggleIsAuth] = useState({
         isAuth: false,
         user: null,
         status: 'pending',
@@ -15,40 +15,55 @@ function AuthContextProvider ({children}) {
 // stap 19
     useEffect(() => {
         const token = localStorage.getItem('token');
+        const today = new Date();
 
         if(token) {
             const decodedToken = jwt_decode(token);
             console.log(decodedToken);
 
-            async function fetchUserData() {
-                try {
-                    const response = await axios.get(`http://localhost:3000/600/users/${decodedToken.sub}`, {
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
+                if (decodedToken.exp < today) {
+                    async function fetchUserData() {
+                        try {
+                            const response = await axios.get(`http://localhost:3000/600/users/${decodedToken.sub}`, {
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${token}`,
+                                }
+                            });
+                            toggleIsAuth({
+                                ...isAuth,
+                                isAuth: true,
+                                user: {
+                                    email: response.data.email,
+                                    username: response.data.username,
+                                    id: response.data.id,
+                                },
+                                status: 'done',
+                            })
+                            console.log(response);
+                        } catch (e) {
+                            console.error(e);
+                            toggleIsAuth({
+                                    ...isAuth,
+                                    status: 'done',
+                                }
+                            )
                         }
-                    });
-                    setIsAuth({
-                        ...isAuth,
-                        isAuth:true,
-                        user:{
-                            email: response.data.email,
-                            username: response.data.username,
-                            id: response.data.id,
-                        },
-                        status:'done',
-                    })
-                    console.log(response);
-                }catch (e) {
-                    console.error(e);
-                    setIsAuth({
-                        ...isAuth,
-                        status:'done',
-                        }
-                    )
+                    }
+
+                    fetchUserData();
                 }
-            }
-            fetchUserData();
+                else{
+                    toggleIsAuth({
+                        ...isAuth,
+                        status:'done',
+                    });
+                }
+        } else {
+            toggleIsAuth({
+                ...isAuth,
+                status:'done',
+            });
         }
     }, []);
 
@@ -61,10 +76,6 @@ function AuthContextProvider ({children}) {
         logout: signOut,
     }
 
-    // stap 13: vul de parameters in om de id en de jwt te ontvangen uit de singIn functie.
-    // Gebruik ze op de benodigde plekken.
-    // Zet de toggleIsAuth erin om in te loggen en bij de geheime content te kunnen
-    // Geef de user info mee hierin
     async function getUserData(id, token) {
         try {
             const result = await axios.get(`http://localhost:3000/600/users/${id}`,
@@ -72,8 +83,7 @@ function AuthContextProvider ({children}) {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
                     }});
-            // stap 14: zet de gebruikersgegevens in de context-state en toggle isAuth op true.
-            setIsAuth({
+            toggleIsAuth({
                 ...isAuth,
                 isAuth: true,
                 user: {
@@ -82,31 +92,21 @@ function AuthContextProvider ({children}) {
                     username: result.data.usename,
                 }
             });
-            // stap 15: link de gebruiker door naar de profielpagina.
             history.push("/profile");
         } catch (e) {
             console.error(e);
         }
     }
 
-    // stap 10: Geef een parameter mee, zodat de functie de token ontvangt.
     function signIn(jwt) {
-        // make een const aan om de token te decoderen:
         const decoded = jwt_decode(jwt);
-        // stap 13: toggleIsAuth kan weg! voor nu even als aantekening laten staan.
-        // toggleIsAuth({
-        //     ...isAuth,
-        //     isAuth: true,
-        // });
-        //stap 13: Roep de functie getUserData aan en geef het id mee en de token
         getUserData(decoded.sub, jwt);
         console.log('Gebruiker is ingelogd!');
-        // sla de jwt op in de local storage.
         localStorage.setItem('token', jwt);
     }
 
     function signOut() {
-        setIsAuth({
+        toggleIsAuth({
             ...isAuth,
             isAuth: false,
             user: null,

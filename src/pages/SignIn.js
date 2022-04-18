@@ -16,7 +16,6 @@ function SignIn() {
                     email: email,
                     password: password,
                 });
-            // roep de login functie aan en geef de accessToken mee aan de functie:
             login(result.data.accessToken);
         } catch (e) {
             console.error(e);
