@@ -12,17 +12,14 @@ function AuthContextProvider ({children}) {
         status: 'pending',
     });
 
-// stap 19
     useEffect(() => {
         const token = localStorage.getItem('token');
-        const today = new Date();
 
         if(token) {
             const decodedToken = jwt_decode(token);
             console.log(decodedToken);
 
-                if (decodedToken.exp < today) {
-                    async function fetchUserData() {
+                async function fetchUserData() {
                         try {
                             const response = await axios.get(`http://localhost:3000/600/users/${decodedToken.sub}`, {
                                 headers: {
@@ -52,13 +49,6 @@ function AuthContextProvider ({children}) {
                     }
 
                     fetchUserData();
-                }
-                else{
-                    toggleIsAuth({
-                        ...isAuth,
-                        status:'done',
-                    });
-                }
         } else {
             toggleIsAuth({
                 ...isAuth,
